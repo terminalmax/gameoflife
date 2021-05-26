@@ -9,8 +9,8 @@
 
 #define LEFT_PIXEL(x) x-1
 #define RIGHT_PIXEL(x) x+1
-#define UP_PIXEL(x) x + SCREEN_HEIGHT
-#define DOWN_PIXEL(x) x - SCREEN_HEIGHT
+#define UP_PIXEL(x) x + SCREEN_WIDTH
+#define DOWN_PIXEL(x) x - SCREEN_WIDTH
 #define UP_LEFT(x) UP_PIXEL(x) - 1
 #define UP_RIGHT(x) UP_PIXEL(x) + 1
 #define DOWN_LEFT(x) DOWN_PIXEL(x) - 1
@@ -20,11 +20,7 @@ SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
 SDL_Texture* texture = NULL;
 
-//Display Grid. Stored in row major form.
-
-//unsigned int grid[SCREEN_WIDTH * SCREEN_HEIGHT]; 
-//unsigned int grid2[SCREEN_WIDTH * SCREEN_HEIGHT];
-
+//Display Grid. Stored in row major form. temp_grid is used as a buffer for changes.
 unsigned int* grid;
 unsigned int* temp_grid;
 
@@ -34,6 +30,7 @@ void clearGrid( unsigned int* g)
 	for(unsigned int i = 0; i < SCREEN_WIDTH * SCREEN_HEIGHT; ++i) g[i] = 0;
 }
 
+//Place a cell on mouse cursor
 void place_cell()
 {
 	int x = 0, y = 0;
@@ -46,6 +43,7 @@ void place_cell()
 
 }
 
+//Calculate next generation 
 void calculate()
 {
 	for(unsigned int i = 0; i < SCREEN_HEIGHT; ++i)
@@ -66,12 +64,13 @@ void calculate()
 
 			if(grid[current] == 0xFFFFFFFF)
 			{
-				if(count < 2 && count > 3) temp_grid[current] = 0;
+				if(count < 2 || count > 3) temp_grid[current] = 0;
 				else temp_grid[current] = 0xFFFFFFFF;
 			}
 			else 
 			{
 				if(count == 3) temp_grid[current] = 0xFFFFFFFF;	
+				else temp_grid[current] = 0;
 			}
 
 		}
@@ -87,8 +86,17 @@ void calculate()
 
 int main(int argc, char** arv)
 {
+	//To keep track of fps
+	uint32_t start_time, frame_time;
+	float fps;
+	
+	//Window title
+	char title[30] = "Game of Life";
+
+	//States
 	int quit = 0, pause = 0, is_click = 0;
 	
+	//The bigger the slower
 	grid = (unsigned int*)malloc(sizeof(unsigned int) * SCREEN_WIDTH * SCREEN_HEIGHT);
 	temp_grid = (unsigned int*)malloc(sizeof(unsigned int) * SCREEN_WIDTH * SCREEN_HEIGHT);
 
@@ -100,7 +108,8 @@ int main(int argc, char** arv)
 		printf("Could not initialize SDL");
 		return 1;
 	}
-	window = SDL_CreateWindow("Game of Life", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH * SCALE, SCREEN_HEIGHT * SCALE, SDL_WINDOW_SHOWN);
+
+	window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH * SCALE, SCREEN_HEIGHT * SCALE, SDL_WINDOW_SHOWN);
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 	texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
 	
@@ -108,11 +117,9 @@ int main(int argc, char** arv)
 	clearGrid(grid);
 	clearGrid(temp_grid);
 
-	grid[11] = 0xFFFFFFFF;
-	grid[12] = 0xFFFFFFFF;
-	
 	while(!quit)
 	{
+		start_time = SDL_GetTicks();
 		if (is_click == 1) place_cell();
 
 		//Taking input
@@ -132,20 +139,33 @@ int main(int argc, char** arv)
 						is_click = 0;
 						pause = 0;
 					break;
-
+				
+				case SDL_KEYDOWN:
+					if(evnt.key.keysym.sym == SDLK_ESCAPE) clearGrid(grid);
+					break;
 
 				default: break;
 			}
 		}
 		
-		//Calculate Neighbours
+		//Calculating the generation
 		if (!pause) calculate();
-
+		
 		//Display
 		SDL_UpdateTexture(texture, NULL, (const void*)grid, sizeof(grid[0])*SCREEN_WIDTH);
    		SDL_RenderClear(renderer);
     		SDL_RenderCopy(renderer, texture, NULL, NULL);
     		SDL_RenderPresent(renderer);
+		
+		//Hardcoded Delay. 
+		SDL_Delay(10);
+		
+		//Calculating FPS and displaying it
+		frame_time = SDL_GetTicks() - start_time;
+		fps = frame_time > 0 ? 1000.0f/frame_time : 0;
+		snprintf(title, 29, "Game of Life FPS:%f", fps); 
+		SDL_SetWindowTitle(window, title);
+
 
 	}
 
