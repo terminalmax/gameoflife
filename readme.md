@@ -1,6 +1,6 @@
 # Game of Life 
 This is a simulation of John Conway's "Game of Life" cellular automata. Implemented in C using SDL as platform layer.
-Made for learning and educational purpose. Written in a straight forward manner so that it's simple to understand and straightforward to teach.
+Made for learning and educational purpose. Written in a straightforward manner so that it's simple to understand and teach.
 
 ## Compilation   
 Requires SDL2.
